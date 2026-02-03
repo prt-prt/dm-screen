@@ -1,0 +1,14 @@
+/* Smooth snap-to-grid animation when dropping or resizing */
+.react-flow__node {
+  transition: transform 0.15s ease-out, width 0.15s ease-out, height 0.15s ease-out;
+}
+
+/* No transition while actively dragging for immediate feedback */
+.react-flow__node.dragging {
+  transition: none;
+}
+
+/* No transition while actively resizing for immediate feedback */
+.react-flow__node.resizing {
+  transition: none;
+}
