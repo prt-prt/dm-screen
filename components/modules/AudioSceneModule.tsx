@@ -4,9 +4,67 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { NodeProps, useReactFlow } from 'reactflow';
 import { ModuleWrapper } from './ModuleWrapper';
 import { useCanvasStore } from '@/lib/store';
+import { useMidiCommand, useMidiChannelCommand } from '@/lib/useMidiCommand';
 import { AudioScene, AudioChannel } from '@/types/modules';
 import { Slider } from '@/components/ui/slider';
 import { Layers, Play, Pause, Square } from 'lucide-react';
+
+// Sub-component for each channel so hooks can be called per-channel
+function AudioSceneChannel({
+  channel,
+  nodeId,
+  volume,
+  onVolumeChange,
+  onAudioRef,
+}: {
+  channel: AudioChannel;
+  nodeId: string;
+  volume: number;
+  onVolumeChange: (channelId: string, value: number[]) => void;
+  onAudioRef: (channelId: string, el: HTMLAudioElement | null) => void;
+}) {
+  const midiCommand = useMidiChannelCommand(nodeId, channel.id);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const setRef = useCallback(
+    (el: HTMLAudioElement | null) => {
+      audioRef.current = el;
+      onAudioRef(channel.id, el);
+    },
+    [channel.id, onAudioRef]
+  );
+
+  // Apply MIDI channel commands
+  useEffect(() => {
+    if (!midiCommand || !audioRef.current) return;
+    if (midiCommand.type === 'setVolume') {
+      const v = midiCommand.value ?? 0;
+      audioRef.current.volume = v;
+      onVolumeChange(channel.id, [v]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [midiCommand?.seq]);
+
+  return (
+    <div className="flex items-center gap-2">
+      <audio
+        ref={setRef}
+        src={`/audio/${channel.audioFile?.filename}`}
+        loop={channel.loop}
+      />
+      <span className="text-[10px] text-[#666] truncate w-16">
+        {channel.audioFile?.name}
+      </span>
+      <Slider
+        value={[volume]}
+        onValueChange={(v) => onVolumeChange(channel.id, v)}
+        max={1}
+        step={0.01}
+        className="flex-1"
+      />
+    </div>
+  );
+}
 
 export const AudioSceneModule = memo(function AudioSceneModule(props: NodeProps) {
   const { data, id } = props;
@@ -16,6 +74,7 @@ export const AudioSceneModule = memo(function AudioSceneModule(props: NodeProps)
   const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
   const { openModal, currentSceneId, refreshCounter } = useCanvasStore();
   const { setNodes, getNodes } = useReactFlow();
+  const midiCommand = useMidiCommand(id);
 
   useEffect(() => {
     if (data.referenceId) {
@@ -54,12 +113,41 @@ export const AudioSceneModule = memo(function AudioSceneModule(props: NodeProps)
     setIsPlaying(false);
   }, []);
 
+  // MIDI master command handler
+  useEffect(() => {
+    if (!midiCommand) return;
+    switch (midiCommand.type) {
+      case 'togglePlay':
+        if (isPlaying) {
+          handlePauseAll();
+        } else {
+          handlePlayAll();
+        }
+        break;
+      case 'stop':
+        handleStopAll();
+        break;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [midiCommand?.seq]);
+
   const handleChannelVolume = useCallback(
     (channelId: string, value: number[]) => {
       const newVolume = value[0];
       setChannelVolumes((prev) => ({ ...prev, [channelId]: newVolume }));
       if (audioRefs.current[channelId]) {
         audioRefs.current[channelId].volume = newVolume;
+      }
+    },
+    []
+  );
+
+  const handleAudioRef = useCallback(
+    (channelId: string, el: HTMLAudioElement | null) => {
+      if (el) {
+        audioRefs.current[channelId] = el;
+      } else {
+        delete audioRefs.current[channelId];
       }
     },
     []
@@ -133,25 +221,16 @@ export const AudioSceneModule = memo(function AudioSceneModule(props: NodeProps)
               {audioScene.channels?.length || 0} tracks
             </span>
           </div>
-          <div className="space-y-1.5 max-h-24 overflow-auto">
+          <div className="space-y-1.5">
             {audioScene.channels?.map((channel) => (
-              <div key={channel.id} className="flex items-center gap-2">
-                <audio
-                  ref={(el) => { if (el) audioRefs.current[channel.id] = el; }}
-                  src={`/audio/${channel.audioFile?.filename}`}
-                  loop={channel.loop}
-                />
-                <span className="text-[10px] text-[#666] truncate w-16">
-                  {channel.audioFile?.name}
-                </span>
-                <Slider
-                  value={[channelVolumes[channel.id] ?? channel.volume]}
-                  onValueChange={(v) => handleChannelVolume(channel.id, v)}
-                  max={1}
-                  step={0.01}
-                  className="flex-1"
-                />
-              </div>
+              <AudioSceneChannel
+                key={channel.id}
+                channel={channel}
+                nodeId={id}
+                volume={channelVolumes[channel.id] ?? channel.volume}
+                onVolumeChange={handleChannelVolume}
+                onAudioRef={handleAudioRef}
+              />
             ))}
           </div>
         </div>

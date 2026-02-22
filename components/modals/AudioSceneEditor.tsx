@@ -5,13 +5,15 @@ import { AudioScene, AudioChannel, AudioFile } from '@/types/modules';
 import { Slider } from '@/components/ui/slider';
 import { Plus, Trash2, Upload, Repeat } from 'lucide-react';
 import { useCanvasStore } from '@/lib/store';
+import { MidiMappingInline } from '@/components/midi/MidiMappingInline';
 
 interface AudioSceneEditorProps {
   sceneId: string;
+  nodeId: string;
   onClose: () => void;
 }
 
-export function AudioSceneEditor({ sceneId, onClose }: AudioSceneEditorProps) {
+export function AudioSceneEditor({ sceneId, nodeId, onClose }: AudioSceneEditorProps) {
   const [scene, setScene] = useState<AudioScene | null>(null);
   const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
   const [saving, setSaving] = useState(false);
@@ -189,6 +191,12 @@ export function AudioSceneEditor({ sceneId, onClose }: AudioSceneEditorProps) {
           </button>
         </div>
       </div>
+
+      <MidiMappingInline
+        nodeId={nodeId}
+        nodeType="audio-scene"
+        channels={scene.channels}
+      />
 
       <div className="flex justify-end gap-2 pt-2">
         <button onClick={onClose} className="px-3 py-1.5 text-xs text-[#888] hover:text-[#e5e5e5] transition-colors">

@@ -4,6 +4,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { NodeProps, useReactFlow } from 'reactflow';
 import { ModuleWrapper } from './ModuleWrapper';
 import { useCanvasStore } from '@/lib/store';
+import { useMidiCommand } from '@/lib/useMidiCommand';
 import { AudioFile } from '@/types/modules';
 import { Slider } from '@/components/ui/slider';
 import { Music, Play, Pause, Repeat, Upload } from 'lucide-react';
@@ -18,6 +19,8 @@ export const AudioChannelModule = memo(function AudioChannelModule(props: NodePr
   const { currentSceneId, refreshCounter } = useCanvasStore();
   const { setNodes, getNodes } = useReactFlow();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const midiCommand = useMidiCommand(id);
+  const volumeSaveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     if (data.referenceId) {
@@ -37,6 +40,43 @@ export const AudioChannelModule = memo(function AudioChannelModule(props: NodePr
       audioRef.current.loop = loop;
     }
   }, [volume, loop]);
+
+  // MIDI command handler
+  useEffect(() => {
+    if (!midiCommand || !audioRef.current) return;
+    switch (midiCommand.type) {
+      case 'setVolume': {
+        const v = midiCommand.value ?? 0;
+        setVolume(v);
+        audioRef.current.volume = v;
+        // Debounce the API write
+        clearTimeout(volumeSaveTimerRef.current);
+        volumeSaveTimerRef.current = setTimeout(() => {
+          fetch(`/api/scenes/${currentSceneId}/nodes/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ config: { ...data.config, volume: v } }),
+          }).catch((err) => console.error('Failed to save MIDI volume:', err));
+        }, 500);
+        break;
+      }
+      case 'togglePlay':
+        if (audioRef.current.paused) {
+          audioRef.current.play();
+          setIsPlaying(true);
+        } else {
+          audioRef.current.pause();
+          setIsPlaying(false);
+        }
+        break;
+      case 'stop':
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        setIsPlaying(false);
+        break;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [midiCommand?.seq]);
 
   const handlePlayPause = useCallback(() => {
     if (!audioRef.current) return;

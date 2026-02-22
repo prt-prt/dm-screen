@@ -77,7 +77,7 @@ export function ModuleWrapper({
         />
 
         {/* Content */}
-        <div className="h-full w-full overflow-auto p-2 text-[#e5e5e5]">
+        <div className="w-full p-2 text-[#e5e5e5]">
           {children}
         </div>
       </div>

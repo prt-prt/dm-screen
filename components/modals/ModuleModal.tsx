@@ -12,7 +12,8 @@ import { NoteEditor } from './NoteEditor';
 import { StatblockEditor } from './StatblockEditor';
 import { InitiativeEditor } from './InitiativeEditor';
 import { AudioSceneEditor } from './AudioSceneEditor';
-import { FileText, Skull, ListOrdered, Layers } from 'lucide-react';
+import { AudioChannelEditor } from './AudioChannelEditor';
+import { FileText, Skull, ListOrdered, Layers, Music } from 'lucide-react';
 
 export function ModuleModal() {
   const { modalOpen, modalModuleId, modalModuleType, closeModal, nodes } =
@@ -30,6 +31,11 @@ export function ModuleModal() {
   }, [closeModal]);
 
   const renderEditor = () => {
+    // audio-channel modal only needs nodeId, not referenceId
+    if (modalModuleType === 'audio-channel') {
+      return <AudioChannelEditor nodeId={modalModuleId!} onClose={closeModal} />;
+    }
+
     if (!referenceId) {
       return (
         <div className="text-center text-[#666] py-8 text-sm">
@@ -46,7 +52,7 @@ export function ModuleModal() {
       case 'initiative':
         return <InitiativeEditor trackerId={referenceId} onClose={closeModal} />;
       case 'audio-scene':
-        return <AudioSceneEditor sceneId={referenceId} onClose={closeModal} />;
+        return <AudioSceneEditor sceneId={referenceId} nodeId={modalModuleId!} onClose={closeModal} />;
       default:
         return (
           <div className="text-center text-[#666] py-8 text-sm">
@@ -62,6 +68,7 @@ export function ModuleModal() {
       case 'statblock': return <Skull className="h-4 w-4 text-[#f87171]" />;
       case 'initiative': return <ListOrdered className="h-4 w-4 text-[#60a5fa]" />;
       case 'audio-scene': return <Layers className="h-4 w-4 text-[#34d399]" />;
+      case 'audio-channel': return <Music className="h-4 w-4 text-[#34d399]" />;
       default: return null;
     }
   };
@@ -72,13 +79,14 @@ export function ModuleModal() {
       case 'statblock': return 'statblock';
       case 'initiative': return 'initiative';
       case 'audio-scene': return 'audio scene';
+      case 'audio-channel': return 'audio channel';
       default: return 'edit';
     }
   };
 
   return (
     <Dialog open={modalOpen} onOpenChange={(open) => !open && closeModal()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-[#1f1f1f] border-[#333]">
+      <DialogContent className="max-w-2xl bg-[#1f1f1f] border-[#333]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm font-normal text-[#888]">
             {getIcon()}
