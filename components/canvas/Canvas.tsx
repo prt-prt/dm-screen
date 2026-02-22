@@ -261,9 +261,9 @@ function CanvasInner() {
             // First snap to grid if enabled
             let finalPosition = gridSnap
               ? {
-                  x: Math.round(node.position.x / gridSize) * gridSize,
-                  y: Math.round(node.position.y / gridSize) * gridSize,
-                }
+                x: Math.round(node.position.x / gridSize) * gridSize,
+                y: Math.round(node.position.y / gridSize) * gridSize,
+              }
               : { ...node.position };
 
             // Then resolve any collisions
@@ -395,10 +395,6 @@ function CanvasInner() {
           color="#333"
         />
         <Controls showInteractive={false} />
-        <MiniMap
-          nodeColor={(node) => MODULE_COLORS[node.type as keyof typeof MODULE_COLORS] || '#555'}
-          maskColor="rgba(0,0,0,0.8)"
-        />
       </ReactFlow>
       <ModuleToolbar onAddModule={addModule} />
       <CanvasControls />

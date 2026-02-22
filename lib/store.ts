@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { CanvasScene, CanvasNode, CanvasViewport } from '@/types/canvas';
+import { CanvasScene, CanvasViewport } from '@/types/canvas';
 import { Node, Edge } from 'reactflow';
 
 interface CanvasState {

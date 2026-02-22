@@ -95,7 +95,7 @@ export function SceneSelector() {
   const currentScene = scenes.find((s) => s.id === currentSceneId);
 
   return (
-    <div className="absolute bottom-3 left-3 z-10">
+    <div className="absolute top-3 left-13 z-10">
       {isEditing ? (
         <div className="flex items-center gap-1 bg-[#242424] border border-[#333] rounded px-2 py-1">
           <input
